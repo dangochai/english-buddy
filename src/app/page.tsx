@@ -10,6 +10,12 @@ interface BookMeta {
   units: { number: number; title: string; topic: string }[];
 }
 
+interface UnitProgressEntry {
+  unit: number;
+  stars: number | null;
+  completed: boolean | null;
+}
+
 const GREETINGS = [
   "Ready to learn? 🎉",
   "Let's go! 🚀",
@@ -21,6 +27,7 @@ const GREETINGS = [
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [bookMeta, setBookMeta] = useState<BookMeta | null>(null);
+  const [unitProgressMap, setUnitProgressMap] = useState<Record<number, UnitProgressEntry>>({});
   const [greeting] = useState(
     () => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]
   );
@@ -30,11 +37,19 @@ export default function HomePage() {
       .then((res) => res.json())
       .then((data: User) => {
         setUser(data);
-        // Fetch book meta for the user's current book
-        return fetch(`/api/books/${data.currentBook ?? "ff2"}`);
+        const book = data.currentBook ?? "ff2";
+        // Fetch book meta and unit progress in parallel
+        return Promise.all([
+          fetch(`/api/books/${book}`).then((r) => r.json()),
+          fetch(`/api/progress?userId=1&book=${book}`).then((r) => r.json()),
+        ]);
       })
-      .then((res) => res.json())
-      .then(setBookMeta);
+      .then(([meta, progress]: [BookMeta, UnitProgressEntry[]]) => {
+        setBookMeta(meta);
+        const map: Record<number, UnitProgressEntry> = {};
+        progress.forEach((p) => { map[p.unit] = p; });
+        setUnitProgressMap(map);
+      });
   }, []);
 
   if (!user) {
@@ -116,26 +131,24 @@ export default function HomePage() {
           <h3 className="font-heading mb-3 text-lg font-bold">Units</h3>
           <div className="space-y-2">
             {bookMeta.units.map((unit) => {
-              // Only Unit 1 has content for now
-              const hasContent = unit.number === 1;
-              const isCurrentOrPast = unit.number <= currentUnit;
+              const progress = unitProgressMap[unit.number];
+              const earnedStars = progress?.stars ?? 0;
+              const isUnlocked = unit.number <= currentUnit + 1;
 
-              return hasContent ? (
+              return isUnlocked ? (
                 <Link
                   key={unit.number}
                   href={`/lesson/${currentBook}/${unit.number}`}
                   className="flex min-h-[64px] items-center justify-between rounded-xl bg-white p-4 shadow-sm transition-colors hover:bg-gray-50"
                 >
-                  <UnitRow unit={unit} isAvailable />
+                  <UnitRow unit={unit} isAvailable stars={earnedStars} />
                 </Link>
               ) : (
                 <div
                   key={unit.number}
-                  className={`flex min-h-[64px] items-center justify-between rounded-xl bg-white p-4 shadow-sm ${
-                    !isCurrentOrPast ? "opacity-40" : "opacity-60"
-                  }`}
+                  className="flex min-h-[64px] items-center justify-between rounded-xl bg-white p-4 shadow-sm opacity-40"
                 >
-                  <UnitRow unit={unit} isAvailable={false} />
+                  <UnitRow unit={unit} isAvailable={false} stars={0} />
                 </div>
               );
             })}
@@ -149,9 +162,11 @@ export default function HomePage() {
 function UnitRow({
   unit,
   isAvailable,
+  stars,
 }: {
   unit: { number: number; title: string; topic: string };
   isAvailable: boolean;
+  stars: number;
 }) {
   return (
     <>
@@ -170,7 +185,15 @@ function UnitRow({
           <p className="text-xs text-text-light">{unit.topic}</p>
         </div>
       </div>
-      <div className="text-lg">{isAvailable ? "⭐" : "🔒"}</div>
+      <div className="text-base">
+        {isAvailable
+          ? stars > 0
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <span key={i}>{i < stars ? "⭐" : "☆"}</span>
+              ))
+            : "▶️"
+          : "🔒"}
+      </div>
     </>
   );
 }

@@ -14,7 +14,8 @@ import ReadComprehension from "@/components/exercises/ReadComprehension";
 import ProgressBar from "@/components/ui/ProgressBar";
 import HeartDisplay from "@/components/ui/HeartDisplay";
 import XPPopup from "@/components/ui/XPPopup";
-import { playLevelUpSound } from "@/lib/sounds";
+import ConfettiAnimation from "@/components/ui/ConfettiAnimation";
+import { playCorrectSound, playWrongSound, playLevelUpSound } from "@/lib/sounds";
 
 interface AnswerRecord {
   exercise: Exercise;
@@ -100,12 +101,14 @@ export default function LessonPage() {
       setAnsweredCurrent(true);
 
       if (correct) {
+        playCorrectSound();
         setCorrectCount((c) => c + 1);
         setXpEarned((xp) => xp + exercise.points);
         setLastXP(exercise.points);
         setShowXP(true);
         setTimeout(() => setShowXP(false), 800);
       } else {
+        playWrongSound();
         setHearts((h) => Math.max(0, h - 1));
       }
 
@@ -255,34 +258,39 @@ export default function LessonPage() {
     const stars = accuracy >= 90 ? 3 : accuracy >= 70 ? 2 : 1;
 
     return (
-      <motion.div
-        className="flex min-h-[60vh] flex-col items-center justify-center gap-6"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-      >
+      <>
+        {progressSaved && <ConfettiAnimation />}
         <motion.div
-          className="text-7xl"
-          animate={{ rotate: [0, 10, -10, 0] }}
-          transition={{ repeat: 2, duration: 0.5 }}
+          className="flex min-h-[60vh] flex-col items-center justify-center gap-6"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
         >
-          🎉
-        </motion.div>
-        <h1 className="font-heading text-3xl font-bold text-primary">
-          Lesson Complete!
-        </h1>
+          {/* Mascot + celebration */}
+          <motion.div
+            className="flex flex-col items-center gap-1"
+            animate={{ y: [0, -12, 0, -8, 0] }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+          >
+            <div className="text-6xl">🐻</div>
+            <div className="text-5xl">🎉</div>
+          </motion.div>
 
-        <div className="flex gap-2 text-4xl">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <motion.span
-              key={i}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 + i * 0.2 }}
-            >
-              {i < stars ? "⭐" : "☆"}
-            </motion.span>
-          ))}
-        </div>
+          <h1 className="font-heading text-3xl font-bold text-primary">
+            Lesson Complete!
+          </h1>
+
+          <div className="flex gap-3 text-5xl">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: [0, 1.5, 1] }}
+                transition={{ delay: 0.4 + i * 0.25, type: "spring", stiffness: 300 }}
+              >
+                {i < stars ? "⭐" : "☆"}
+              </motion.span>
+            ))}
+          </div>
 
         <div className="grid w-full grid-cols-3 gap-3 text-center">
           <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -316,6 +324,7 @@ export default function LessonPage() {
           </button>
         </div>
       </motion.div>
+      </>
     );
   }
 

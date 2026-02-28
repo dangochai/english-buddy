@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { db, users, unitProgress, dailyLog } from "@/lib/db";
 import { eq, and, sql } from "drizzle-orm";
 
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const userId = parseInt(searchParams.get("userId") ?? "1", 10);
+  const book = searchParams.get("book") ?? "ff2";
+
+  const progress = db
+    .select()
+    .from(unitProgress)
+    .where(and(eq(unitProgress.userId, userId), eq(unitProgress.book, book)))
+    .all();
+
+  return NextResponse.json(progress);
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const { userId, book, unit, stars, accuracy, exercisesDone, xpEarned } = body;
