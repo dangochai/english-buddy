@@ -38,5 +38,6 @@ export interface Exercise {
   image?: string;
   audio?: string;
   phonics?: string;
+  passage?: string;
   points: number;
 }

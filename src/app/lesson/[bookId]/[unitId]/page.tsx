@@ -6,6 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Exercise } from "@/types/exercise";
 import WordMatch from "@/components/exercises/WordMatch";
 import FillBlank from "@/components/exercises/FillBlank";
+import TypeWord from "@/components/exercises/TypeWord";
+import SentenceOrder from "@/components/exercises/SentenceOrder";
+import WordScramble from "@/components/exercises/WordScramble";
+import SpeakRepeat from "@/components/exercises/SpeakRepeat";
+import ReadComprehension from "@/components/exercises/ReadComprehension";
 import ProgressBar from "@/components/ui/ProgressBar";
 import HeartDisplay from "@/components/ui/HeartDisplay";
 import XPPopup from "@/components/ui/XPPopup";
@@ -454,6 +459,20 @@ function ExerciseRenderer({
       return <WordMatch exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
     case "fill-blank":
       return <FillBlank exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+    case "type-word":
+    case "type-sentence":
+      return <TypeWord exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+    case "sentence-order":
+      return <SentenceOrder exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+    case "word-scramble":
+      return <WordScramble exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+    case "repeat-word":
+    case "repeat-sentence":
+    case "answer-question":
+      return <SpeakRepeat exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
+    case "read-comprehension":
+    case "read-true-false":
+      return <ReadComprehension exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
     default:
       return <WordMatch exercise={exercise} onAnswer={onAnswer} initialAnswer={initialAnswer} />;
   }
