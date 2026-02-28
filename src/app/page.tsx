@@ -5,22 +5,55 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import type { User } from "@/types/user";
 
+interface BookMeta {
+  title: string;
+  units: { number: number; title: string; topic: string }[];
+}
+
+const GREETINGS = [
+  "Ready to learn? 🎉",
+  "Let's go! 🚀",
+  "Great to see you! 🌟",
+  "Time to practice! 📚",
+  "You can do it! 💪",
+];
+
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
+  const [bookMeta, setBookMeta] = useState<BookMeta | null>(null);
+  const [greeting] = useState(
+    () => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]
+  );
 
   useEffect(() => {
     fetch("/api/user")
       .then((res) => res.json())
-      .then(setUser);
+      .then((data: User) => {
+        setUser(data);
+        // Fetch book meta for the user's current book
+        return fetch(`/api/books/${data.currentBook ?? "ff2"}`);
+      })
+      .then((res) => res.json())
+      .then(setBookMeta);
   }, []);
 
   if (!user) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-2xl font-bold text-primary">Loading...</div>
+        <motion.div
+          className="text-6xl"
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+        >
+          🐻
+        </motion.div>
       </div>
     );
   }
+
+  const currentBook = user.currentBook ?? "ff2";
+  const currentUnit = user.currentUnit ?? 1;
+  const currentUnitMeta = bookMeta?.units.find((u) => u.number === currentUnit);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -39,34 +72,29 @@ export default function HomePage() {
           transition={{ delay: 0.3 }}
         >
           <p className="font-heading text-lg font-bold text-text">
-            Hi {user.name}! Ready to learn? 🎉
+            Hi {user.name}! {greeting}
           </p>
         </motion.div>
       </motion.div>
 
       {/* Stats Row */}
       <div className="grid w-full grid-cols-3 gap-3">
-        <StatCard icon="⚡" value={user.totalXp} label="XP" color="text-secondary" />
-        <StatCard icon="🔥" value={user.streakDays} label="Streak" color="text-error" />
-        <StatCard icon="📖" value={`U${user.currentUnit}`} label={user.currentBook?.toUpperCase() ?? "FF2"} color="text-accent" />
+        <StatCard icon="⚡" value={user.totalXp ?? 0} label="XP" color="text-secondary" />
+        <StatCard icon="🔥" value={user.streakDays ?? 0} label="Streak" color="text-error" />
+        <StatCard icon="📖" value={`U${currentUnit}`} label={currentBook.toUpperCase()} color="text-accent" />
       </div>
 
-      {/* Current Progress */}
-      <div className="w-full rounded-2xl bg-white p-5 shadow-md">
-        <h2 className="font-heading text-lg font-bold text-text">
-          Unit {user.currentUnit}: School Things
-        </h2>
-        <p className="mt-1 text-sm text-text-light">Family and Friends 2</p>
-        <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-gray-200">
-          <motion.div
-            className="h-full rounded-full bg-primary"
-            initial={{ width: 0 }}
-            animate={{ width: "15%" }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-          />
+      {/* Current Unit Card */}
+      {currentUnitMeta && (
+        <div className="w-full rounded-2xl bg-white p-5 shadow-md">
+          <h2 className="font-heading text-lg font-bold text-text">
+            Unit {currentUnit}: {currentUnitMeta.title}
+          </h2>
+          <p className="mt-1 text-sm text-text-light">
+            {bookMeta?.title} — {currentUnitMeta.topic}
+          </p>
         </div>
-        <p className="mt-1 text-right text-xs text-text-light">15% complete</p>
-      </div>
+      )}
 
       {/* Start Lesson Button */}
       <motion.div
@@ -75,46 +103,75 @@ export default function HomePage() {
         whileTap={{ scale: 0.98 }}
       >
         <Link
-          href={`/lesson/${user.currentBook ?? "ff2"}/${user.currentUnit}`}
-          className="block w-full rounded-2xl bg-primary py-5 text-center text-xl font-bold text-white shadow-lg transition-colors hover:bg-primary-dark"
+          href={`/lesson/${currentBook}/${currentUnit}`}
+          className="block min-h-[56px] w-full rounded-2xl bg-primary py-5 text-center text-xl font-bold text-white shadow-lg transition-colors hover:bg-primary-dark"
         >
           Start Lesson
         </Link>
       </motion.div>
 
       {/* Unit List */}
-      <div className="w-full">
-        <h3 className="font-heading mb-3 text-lg font-bold">Units</h3>
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((unit) => (
-            <Link
-              key={unit}
-              href={`/lesson/ff2/${unit}`}
-              className={`flex items-center justify-between rounded-xl bg-white p-4 shadow-sm transition-colors hover:bg-gray-50 ${
-                unit > 1 ? "opacity-50" : ""
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                  {unit}
-                </span>
-                <div>
-                  <p className="font-semibold text-text">
-                    {["What's this?", "They're happy", "I can ride a bike", "This is my family", "Where's the ball?"][unit - 1]}
-                  </p>
-                  <p className="text-xs text-text-light">
-                    {["School things", "Feelings", "Abilities", "Family", "Prepositions"][unit - 1]}
-                  </p>
+      {bookMeta && (
+        <div className="w-full">
+          <h3 className="font-heading mb-3 text-lg font-bold">Units</h3>
+          <div className="space-y-2">
+            {bookMeta.units.map((unit) => {
+              // Only Unit 1 has content for now
+              const hasContent = unit.number === 1;
+              const isCurrentOrPast = unit.number <= currentUnit;
+
+              return hasContent ? (
+                <Link
+                  key={unit.number}
+                  href={`/lesson/${currentBook}/${unit.number}`}
+                  className="flex min-h-[64px] items-center justify-between rounded-xl bg-white p-4 shadow-sm transition-colors hover:bg-gray-50"
+                >
+                  <UnitRow unit={unit} isAvailable />
+                </Link>
+              ) : (
+                <div
+                  key={unit.number}
+                  className={`flex min-h-[64px] items-center justify-between rounded-xl bg-white p-4 shadow-sm ${
+                    !isCurrentOrPast ? "opacity-40" : "opacity-60"
+                  }`}
+                >
+                  <UnitRow unit={unit} isAvailable={false} />
                 </div>
-              </div>
-              <div className="text-lg">
-                {unit === 1 ? "⭐" : "🔒"}
-              </div>
-            </Link>
-          ))}
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UnitRow({
+  unit,
+  isAvailable,
+}: {
+  unit: { number: number; title: string; topic: string };
+  isAvailable: boolean;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <span
+          className={`flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold ${
+            isAvailable
+              ? "bg-primary/10 text-primary"
+              : "bg-gray-100 text-text-light"
+          }`}
+        >
+          {unit.number}
+        </span>
+        <div>
+          <p className="font-semibold text-text">{unit.title}</p>
+          <p className="text-xs text-text-light">{unit.topic}</p>
         </div>
       </div>
-    </div>
+      <div className="text-lg">{isAvailable ? "⭐" : "🔒"}</div>
+    </>
   );
 }
 
