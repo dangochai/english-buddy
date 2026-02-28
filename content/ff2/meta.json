@@ -1,0 +1,22 @@
+{
+  "title": "Family and Friends 2",
+  "level": 2,
+  "cefr": "Pre-A1 to A1",
+  "units": [
+    { "number": 1, "title": "What's this?", "topic": "School things" },
+    { "number": 2, "title": "They're happy", "topic": "Feelings and emotions" },
+    { "number": 3, "title": "I can ride a bike", "topic": "Abilities" },
+    { "number": 4, "title": "This is my family", "topic": "Family members" },
+    { "number": 5, "title": "Where's the ball?", "topic": "Prepositions" },
+    { "number": 6, "title": "Let's play!", "topic": "Toys and games" },
+    { "number": 7, "title": "We've got a pet", "topic": "Animals" },
+    { "number": 8, "title": "It's hot today", "topic": "Weather" },
+    { "number": 9, "title": "What's for lunch?", "topic": "Food" },
+    { "number": 10, "title": "Lunchtime!", "topic": "Food and drink" },
+    { "number": 11, "title": "I get up at seven", "topic": "Daily routines" },
+    { "number": 12, "title": "What day is it today?", "topic": "Days of the week" },
+    { "number": 13, "title": "Look at the animals!", "topic": "Zoo animals" },
+    { "number": 14, "title": "I'm wearing a T-shirt", "topic": "Clothes" },
+    { "number": 15, "title": "It's Fun Day!", "topic": "Review and celebration" }
+  ]
+}
