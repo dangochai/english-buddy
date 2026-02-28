@@ -272,7 +272,7 @@ function resetUnitProgress(unitNumber) {
     const result = spawnSync(
       CLAUDE_BIN,
       ["-p", prompt, "--allowedTools", "WebSearch"],
-      { encoding: "utf8", timeout: 150_000, maxBuffer: 4 * 1024 * 1024, env: childEnv }
+      { encoding: "utf8", timeout: 300_000, maxBuffer: 4 * 1024 * 1024, env: childEnv }
     );
 
     if (result.error) {
