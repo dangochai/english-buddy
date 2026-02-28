@@ -47,6 +47,7 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
   const [hasMic, setHasMic] = useState(true);
   const [typingFallback, setTypingFallback] = useState(false);
   const [typedValue, setTypedValue] = useState("");
+  const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const correctAnswer = Array.isArray(exercise.correctAnswer)
@@ -76,6 +77,7 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
   }, [mode]);
 
   const handleListen = () => {
+    setMicError(null);
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setTypingFallback(true);
@@ -98,9 +100,18 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
       else playWrongSound();
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (e: Event & { error?: string }) => {
       setMode("idle");
-      setTypingFallback(true);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        // Permission denied — show message, allow retry (don't force typing)
+        setMicError("Microphone access denied. Please allow mic access and try again.");
+      } else if (e.error === "no-speech") {
+        // No speech detected — stay on mic, gentle hint
+        setMicError("No speech detected. Tap the mic and speak clearly.");
+      } else {
+        // True fallback for audio-capture / network / unknown errors
+        setTypingFallback(true);
+      }
     };
 
     recognition.onend = () => {
@@ -201,22 +212,24 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
           <p className="text-sm text-text-light">
             {mode === "listening" ? "Listening… tap to stop" : "Tap the mic and speak"}
           </p>
-          {hasMic && (
-            <button
-              onClick={() => setTypingFallback(true)}
-              className="text-xs text-text-light underline"
+
+          {/* Mic error message */}
+          {micError && (
+            <motion.p
+              className="text-center text-sm font-semibold text-error"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              Can&apos;t use mic? Type instead
-            </button>
+              {micError}
+            </motion.p>
           )}
-          {!hasMic && (
-            <button
-              onClick={() => setTypingFallback(true)}
-              className="rounded-xl border-2 border-accent px-4 py-2 text-sm font-semibold text-accent"
-            >
-              Type your answer instead
-            </button>
-          )}
+
+          <button
+            onClick={() => setTypingFallback(true)}
+            className="text-xs text-text-light underline"
+          >
+            {hasMic ? "Can't use mic? Type instead" : "Type your answer instead"}
+          </button>
         </div>
       )}
     </div>

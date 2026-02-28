@@ -285,7 +285,7 @@ export default function LessonPage() {
                 key={i}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: [0, 1.5, 1] }}
-                transition={{ delay: 0.4 + i * 0.25, type: "spring", stiffness: 300 }}
+                transition={{ delay: 0.4 + i * 0.25, duration: 0.45, ease: "backOut" }}
               >
                 {i < stars ? "⭐" : "☆"}
               </motion.span>
