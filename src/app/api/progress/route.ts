@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       .run();
   }
 
-  // Update streak
+  // Update user: streak + currentUnit + totalXp
   const user = db.select().from(users).where(eq(users.id, userId)).get();
   if (user) {
     const lastActive = user.lastActive;
@@ -104,10 +104,17 @@ export async function POST(request: Request) {
       newStreak = 1; // Streak broken
     }
 
+    // Advance currentUnit if this lesson is at or beyond the current frontier
+    const newCurrentUnit =
+      unit >= (user.currentUnit ?? 1)
+        ? unit + 1
+        : user.currentUnit ?? 1;
+
     db.update(users)
       .set({
         lastActive: today,
         streakDays: newStreak,
+        currentUnit: newCurrentUnit,
       })
       .where(eq(users.id, userId))
       .run();
