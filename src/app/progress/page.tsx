@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { User } from "@/types/user";
+import { useActiveUser } from "@/hooks/useActiveUser";
 
 interface SkillStat {
   skill: string;
@@ -45,20 +46,22 @@ const SKILL_COLORS: Record<string, string> = {
 };
 
 export default function ProgressPage() {
+  const { userId } = useActiveUser();
   const [user, setUser] = useState<User | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
 
   useEffect(() => {
-    fetch("/api/user")
+    if (userId === null) return;
+    fetch(`/api/user?userId=${userId}`)
       .then((res) => res.json())
       .then((data: User) => {
         setUser(data);
         const book = data.currentBook ?? "ff2";
-        return fetch(`/api/progress/summary?userId=1&book=${book}`);
+        return fetch(`/api/progress/summary?userId=${userId}&book=${book}`);
       })
       .then((res) => res.json())
       .then(setSummary);
-  }, []);
+  }, [userId]);
 
   if (!user || !summary) {
     return (

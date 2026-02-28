@@ -16,6 +16,7 @@ import HeartDisplay from "@/components/ui/HeartDisplay";
 import XPPopup from "@/components/ui/XPPopup";
 import ConfettiAnimation from "@/components/ui/ConfettiAnimation";
 import { playCorrectSound, playWrongSound, playLevelUpSound } from "@/lib/sounds";
+import { useActiveUser } from "@/hooks/useActiveUser";
 
 interface AnswerRecord {
   exercise: Exercise;
@@ -28,6 +29,7 @@ export default function LessonPage() {
   const router = useRouter();
   const bookId = params.bookId as string;
   const unitId = parseInt(params.unitId as string, 10);
+  const { userId } = useActiveUser();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -65,7 +67,7 @@ export default function LessonPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: 1,
+        userId: userId ?? 1,
         book: bookId,
         unit: unitId,
         stars,
@@ -117,7 +119,7 @@ export default function LessonPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: 1,
+          userId: userId ?? 1,
           exerciseId: exercise.id,
           skill: exercise.skill,
           correct,
