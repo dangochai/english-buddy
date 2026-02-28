@@ -10,25 +10,49 @@ function getAudioContext(): AudioContext {
   return audioContext;
 }
 
+/**
+ * Unlock AudioContext on iOS Safari.
+ * iOS suspends AudioContext until a user gesture — call this on first tap/click.
+ */
+export function unlockAudio() {
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+  } catch {
+    // Not available, silently skip
+  }
+}
+
 function playTone(frequency: number, duration: number, type: OscillatorType = "sine", volume = 0.3) {
   try {
     const ctx = getAudioContext();
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
-    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + duration);
+    // Resume if suspended (e.g. iOS Safari after page load)
+    if (ctx.state === "suspended") {
+      ctx.resume().then(() => _playTone(ctx, frequency, duration, type, volume));
+      return;
+    }
+    _playTone(ctx, frequency, duration, type, volume);
   } catch {
     // Audio not available, silently fail
   }
+}
+
+function _playTone(ctx: AudioContext, frequency: number, duration: number, type: OscillatorType, volume: number) {
+  const oscillator = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+  gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(ctx.destination);
+
+  oscillator.start(ctx.currentTime);
+  oscillator.stop(ctx.currentTime + duration);
 }
 
 export function playCorrectSound() {

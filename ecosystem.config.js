@@ -14,5 +14,16 @@ module.exports = {
       max_memory_restart: "500M",
       autorestart: true,
     },
+    {
+      name: "english-buddy-https",
+      script: "scripts/https-proxy.js",
+      env: {
+        NODE_ENV: "production",
+        HTTPS_PORT: "3443",
+        TARGET_PORT: "3000",
+      },
+      watch: false,
+      autorestart: true,
+    },
   ],
 };

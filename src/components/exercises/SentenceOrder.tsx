@@ -33,7 +33,13 @@ export default function SentenceOrder({ exercise, onAnswer, initialAnswer }: Sen
       }
       return remaining;
     }
-    return [...wordBank];
+    // Fisher-Yates shuffle so words appear in random order every time
+    const arr = [...wordBank];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
   });
   const [showResult, setShowResult] = useState(!!initialAnswer);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(
@@ -76,7 +82,13 @@ export default function SentenceOrder({ exercise, onAnswer, initialAnswer }: Sen
 
   const handleReset = () => {
     setSelected([]);
-    setAvailable([...wordBank]);
+    // Re-shuffle on reset too
+    const arr = [...wordBank];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setAvailable(arr);
   };
 
   return (

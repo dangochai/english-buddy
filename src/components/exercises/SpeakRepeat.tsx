@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { Exercise } from "@/types/exercise";
 import { useSpeech } from "@/hooks/useSpeech";
 import { playCorrectSound, playWrongSound } from "@/lib/sounds";
+import { wordDiff, normalizeText, type WordDiff } from "@/lib/fuzzyMatch";
 
 interface SpeakRepeatProps {
   exercise: Exercise;
@@ -33,8 +34,58 @@ declare global {
   }
 }
 
-function normalize(s: string) {
-  return s.toLowerCase().trim().replace(/[.,!?]/g, "");
+/** Word-by-word colour diff showing which words were correct/wrong */
+function WordDiffDisplay({
+  diffs,
+  isCorrect,
+}: {
+  diffs: WordDiff[];
+  isCorrect: boolean;
+}) {
+  return (
+    <div className="w-full rounded-2xl border-2 bg-white px-4 py-4 shadow-sm">
+      {/* Heard row */}
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-light">
+        You said
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {diffs.map((d, i) => (
+          <span
+            key={i}
+            className={`rounded-lg px-2 py-0.5 text-base font-semibold ${
+              d.correct
+                ? "bg-primary/10 text-primary"
+                : "bg-error/10 text-error"
+            }`}
+          >
+            {d.heard || <span className="italic opacity-50">—</span>}
+            <span className="ml-1 text-xs">{d.correct ? "✅" : "❌"}</span>
+          </span>
+        ))}
+      </div>
+
+      {/* Expected row — only show when something was wrong */}
+      {!isCorrect && (
+        <>
+          <p className="mb-1 mt-3 text-xs font-semibold uppercase tracking-wide text-text-light">
+            Expected
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {diffs.map((d, i) => (
+              <span
+                key={i}
+                className={`rounded-lg px-2 py-0.5 text-base font-semibold ${
+                  d.correct ? "text-text-light opacity-40" : "text-accent font-bold"
+                }`}
+              >
+                {d.word}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: SpeakRepeatProps) {
@@ -48,6 +99,7 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
   const [typingFallback, setTypingFallback] = useState(false);
   const [typedValue, setTypedValue] = useState("");
   const [micError, setMicError] = useState<string | null>(null);
+  const [diffs, setDiffs] = useState<WordDiff[]>([]);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const correctAnswer = Array.isArray(exercise.correctAnswer)
@@ -57,7 +109,9 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
   // Check initial answer correctness
   useEffect(() => {
     if (initialAnswer) {
-      setIsCorrect(normalize(initialAnswer) === normalize(correctAnswer));
+      const correct = normalizeText(initialAnswer) === normalizeText(correctAnswer);
+      setIsCorrect(correct);
+      setDiffs(wordDiff(initialAnswer, correctAnswer));
     }
   }, [initialAnswer, correctAnswer]);
 
@@ -70,7 +124,7 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
   // Notify parent
   useEffect(() => {
     if (mode === "done" && spokenText) {
-      const correct = normalize(spokenText) === normalize(correctAnswer);
+      const correct = normalizeText(spokenText) === normalizeText(correctAnswer);
       onAnswer(correct, spokenText);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,8 +147,9 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
     recognition.onresult = (e: SpeechRecognitionEvent) => {
       const transcript = e.results[0][0].transcript;
       setSpokenText(transcript);
-      const correct = normalize(transcript) === normalize(correctAnswer);
+      const correct = normalizeText(transcript) === normalizeText(correctAnswer);
       setIsCorrect(correct);
+      setDiffs(wordDiff(transcript, correctAnswer));
       setMode("done");
       if (correct) playCorrectSound();
       else playWrongSound();
@@ -103,10 +158,8 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
     recognition.onerror = (e: Event & { error?: string }) => {
       setMode("idle");
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        // Permission denied — show message, allow retry (don't force typing)
         setMicError("Microphone access denied. Please allow mic access and try again.");
       } else if (e.error === "no-speech") {
-        // No speech detected — stay on mic, gentle hint
         setMicError("No speech detected. Tap the mic and speak clearly.");
       } else {
         // True fallback for audio-capture / network / unknown errors
@@ -129,9 +182,10 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
 
   const handleTypingSubmit = () => {
     if (!typedValue.trim()) return;
-    const correct = normalize(typedValue) === normalize(correctAnswer);
+    const correct = normalizeText(typedValue) === normalizeText(correctAnswer);
     setSpokenText(typedValue);
     setIsCorrect(correct);
+    setDiffs(wordDiff(typedValue, correctAnswer));
     setMode("done");
     if (correct) playCorrectSound();
     else playWrongSound();
@@ -153,24 +207,18 @@ export default function SpeakRepeat({ exercise, onAnswer, initialAnswer }: Speak
       {/* Mic / result area */}
       {mode === "done" ? (
         <motion.div
-          className="flex flex-col items-center gap-3"
+          className="flex w-full flex-col items-center gap-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <div
-            className={`rounded-2xl border-2 px-5 py-3 text-center text-lg font-semibold ${
-              isCorrect
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-error bg-error/10 text-error"
-            }`}
-          >
-            You said: &ldquo;{spokenText}&rdquo;
-          </div>
+          {/* Word-level diff */}
+          <WordDiffDisplay diffs={diffs} isCorrect={!!isCorrect} />
+
           {isCorrect ? (
             <p className="text-base font-semibold text-primary">Great pronunciation! 🎉</p>
           ) : (
-            <p className="text-base font-semibold text-primary">
-              Try again: <span className="text-accent">{correctAnswer}</span>
+            <p className="text-sm text-text-light">
+              Tap the sentence above to hear it again, then try once more 🎤
             </p>
           )}
         </motion.div>

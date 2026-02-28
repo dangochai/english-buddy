@@ -75,9 +75,12 @@ export default function LessonPage() {
         exercisesDone: exercises.length,
         xpEarned,
       }),
-    }).then(() => setProgressSaved(true));
-
-    playLevelUpSound();
+    }).then(() => {
+      setProgressSaved(true);
+      // Play after fetch resolves — still within async chain started by lesson completion,
+      // but AudioUnlocker ensures context is already unlocked from earlier user taps.
+      playLevelUpSound();
+    });
   }, [isComplete, progressSaved, correctCount, exercises.length, bookId, unitId, xpEarned]);
 
   // Check if current question was already answered (navigating back)

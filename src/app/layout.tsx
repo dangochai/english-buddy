@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nunito, Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/layout/BottomNav";
+import AudioUnlocker from "@/components/ui/AudioUnlocker";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${nunito.variable} ${inter.variable}`}>
       <body className="min-h-screen bg-bg pb-20">
+        <AudioUnlocker />
         <main className="mx-auto max-w-lg px-4 py-6">{children}</main>
         <BottomNav />
       </body>
